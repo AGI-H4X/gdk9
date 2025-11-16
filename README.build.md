@@ -70,5 +70,3 @@ make package
 Notes
 - `pyproject.toml` uses `setuptools.build_meta`. The `build` package is required to run `python -m build`.
 - `Makefile` uses `PY ?= python3`; you can override e.g. `make PY=python`.
-
-If you want, I can run the test suite now and paste the output below.
