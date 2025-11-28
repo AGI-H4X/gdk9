@@ -46,5 +46,3 @@ Email: adamgrange@proton.me
 ## License
 
 Open-source, auditable, freedom with responsibility (final license pending).
-
-You said:
