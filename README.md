@@ -41,10 +41,7 @@ Contact
 Email: adamgrange@proton.me
 
 
-Telegram: @GDknine
 
-
----
 
 ## License
 
