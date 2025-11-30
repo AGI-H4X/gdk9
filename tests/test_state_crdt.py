@@ -71,3 +71,17 @@ def test_merge_state_uses_rule_metadata_when_payload_missing():
   assert merged["rules"]["R1"]["arity"] == 4
   assert merged["crdt"]["rules"]["R1"]["actor"] == "left"
   assert stats["rules"]["unchanged"] == 1
+
+
+def test_merge_state_tolerates_partial_metadata_fields():
+  left = _mk_state({"A": 1.0})
+  left["crdt"]["symbols"]["A"] = {"value": 1.0, "timestamp": None}
+  right = _mk_state({"A": 2.0})
+  right["crdt"]["symbols"]["A"] = {"value": 2.0, "timestamp": "invalid", "actor": ""}
+
+  merged, stats = merge_state(left, right)
+
+  assert merged["symbols"]["A"] == 2.0
+  assert merged["crdt"]["symbols"]["A"]["actor"] == "legacy"
+  assert merged["crdt"]["symbols"]["A"]["timestamp"] == 0.0
+  assert stats["symbols"]["updated"] == 1

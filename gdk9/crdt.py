@@ -13,8 +13,15 @@ class LwwEntry:
 
 
 def coerce_entry(raw: Any, default_actor: str = "legacy", default_ts: float = 0.0) -> LwwEntry:
-  if isinstance(raw, dict) and {"value", "timestamp", "actor"} <= set(raw.keys()):
-    return LwwEntry(raw.get("value"), float(raw.get("timestamp", default_ts)), str(raw.get("actor", default_actor)))
+  if isinstance(raw, dict):
+    value = raw.get("value", raw)
+    try:
+      ts = float(raw.get("timestamp", default_ts))
+    except (TypeError, ValueError):
+      ts = float(default_ts)
+    actor_raw = raw.get("actor", default_actor)
+    actor = default_actor if actor_raw in {None, ""} else str(actor_raw)
+    return LwwEntry(value, ts, actor)
   return LwwEntry(raw, float(default_ts), default_actor)
 
 
