@@ -123,8 +123,10 @@ def _resolve_value(
   left_data: Dict[str, Any],
   right_data: Dict[str, Any],
 ) -> Any:
-  primary = left_data if winner == "left" else right_data
-  secondary = right_data if winner == "left" else left_data
+  """Resolve the value for a CRDT key using winner metadata and payload fallbacks."""
+  side = winner if winner in {"left", "right"} else ("left" if name in left_data else "right")
+  primary = left_data if side == "left" else right_data
+  secondary = right_data if side == "left" else left_data
   value = primary.get(name, _MISSING)
   if value is _MISSING:
     meta_value = meta.get(name, {}).get("value", _MISSING)

@@ -40,6 +40,13 @@ def merge_maps(
   default_actor: str = "legacy",
   default_ts: float = 0.0,
 ) -> Tuple[Dict[str, Any], Dict[str, int], Dict[str, str]]:
+  """Merge two LWW maps.
+
+  The returned tuple contains the merged map, update statistics, and the winner side for
+  each key ("left" or "right"). When inputs omit CRDT metadata, ``default_actor`` and
+  ``default_ts`` supply deterministic fallbacks so downstream consumers never see missing
+  fields.
+  """
   merged: Dict[str, Any] = {}
   stats = {"added": 0, "updated": 0, "unchanged": 0}
   winners: Dict[str, str] = {}

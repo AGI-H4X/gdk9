@@ -58,3 +58,16 @@ def test_merge_state_falls_back_to_winner_metadata_value_when_data_missing():
   assert merged["symbols"]["A"] == 3.0
   assert merged["crdt"]["symbols"]["A"]["actor"] == "left"
   assert stats["symbols"]["unchanged"] == 1
+
+
+def test_merge_state_uses_rule_metadata_when_payload_missing():
+  left = _mk_state()
+  right = _mk_state({"R1": {"name": "R1", "type": "fusion", "arity": 2, "params": {"out": "X"}}})
+  left["crdt"]["rules"]["R1"] = stamp({"name": "R1", "type": "fusion", "arity": 4, "params": {"out": "X"}}, actor="left", ts=8.0)
+  right["crdt"]["rules"]["R1"] = stamp({"name": "R1", "type": "fusion", "arity": 2, "params": {"out": "X"}}, actor="right", ts=4.0)
+
+  merged, stats = merge_state(left, right)
+
+  assert merged["rules"]["R1"]["arity"] == 4
+  assert merged["crdt"]["rules"]["R1"]["actor"] == "left"
+  assert stats["rules"]["unchanged"] == 1
