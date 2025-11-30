@@ -1,3 +1,4 @@
+from gdk9.crdt import stamp
 from gdk9.state import merge_state, set_rule, set_symbol
 
 
@@ -44,3 +45,16 @@ def test_merge_state_keeps_local_when_peer_missing_entry():
   assert merged["crdt"]["symbols"]["A"]["actor"] == "local"
   assert stats["symbols"]["unchanged"] == 1
   assert stats["symbols"]["added"] == 0
+
+
+def test_merge_state_falls_back_to_winner_metadata_value_when_data_missing():
+  left = _mk_state()
+  right = _mk_state({"A": 2.0})
+  left["crdt"]["symbols"]["A"] = stamp(3.0, actor="left", ts=10.0)
+  right["crdt"]["symbols"]["A"] = stamp(2.0, actor="right", ts=5.0)
+
+  merged, stats = merge_state(left, right)
+
+  assert merged["symbols"]["A"] == 3.0
+  assert merged["crdt"]["symbols"]["A"]["actor"] == "left"
+  assert stats["symbols"]["unchanged"] == 1

@@ -14,6 +14,7 @@ from .errors import InputError
 
 DEFAULT_STATE_PATH = os.path.expanduser("~/.gdk9/state.json")
 LEGACY_ACTOR = "legacy"
+_MISSING = object()
 
 
 def _ensure_parent(path: Path) -> None:
@@ -90,10 +91,13 @@ def merge_state(left: Dict[str, Any], right: Dict[str, Any]) -> Tuple[Dict[str, 
   )
   merged["crdt"]["symbols"] = sym_meta
   for name in sym_meta.keys():
-    if sym_winners.get(name) == "left":
-      merged["symbols"][name] = lstate.get("symbols", {}).get(name)
-    else:
-      merged["symbols"][name] = rstate.get("symbols", {}).get(name, lstate.get("symbols", {}).get(name))
+    merged["symbols"][name] = _resolve_value(
+      name,
+      sym_winners.get(name),
+      sym_meta,
+      lstate.get("symbols", {}),
+      rstate.get("symbols", {}),
+    )
   rule_meta, rule_stats, rule_winners = merge_maps(
     lstate.get("crdt", {}).get("rules", {}),
     rstate.get("crdt", {}).get("rules", {}),
@@ -102,9 +106,31 @@ def merge_state(left: Dict[str, Any], right: Dict[str, Any]) -> Tuple[Dict[str, 
   )
   merged["crdt"]["rules"] = rule_meta
   for name in rule_meta.keys():
-    if rule_winners.get(name) == "left":
-      merged["rules"][name] = lstate.get("rules", {}).get(name)
-    else:
-      merged["rules"][name] = rstate.get("rules", {}).get(name, lstate.get("rules", {}).get(name))
+    merged["rules"][name] = _resolve_value(
+      name,
+      rule_winners.get(name),
+      rule_meta,
+      lstate.get("rules", {}),
+      rstate.get("rules", {}),
+    )
   return merged, {"symbols": sym_stats, "rules": rule_stats}
+
+
+def _resolve_value(
+  name: str,
+  winner: Optional[str],
+  meta: Dict[str, Dict[str, Any]],
+  left_data: Dict[str, Any],
+  right_data: Dict[str, Any],
+) -> Any:
+  primary = left_data if winner == "left" else right_data
+  secondary = right_data if winner == "left" else left_data
+  value = primary.get(name, _MISSING)
+  if value is _MISSING:
+    meta_value = meta.get(name, {}).get("value", _MISSING)
+    if meta_value is not _MISSING:
+      value = meta_value
+  if value is _MISSING:
+    value = secondary.get(name, _MISSING)
+  return None if value is _MISSING else value
 
