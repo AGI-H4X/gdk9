@@ -15,7 +15,7 @@ from .tokenize import summarize_tokens_table, to_json_payload, annotate_text, de
 from .optimize import optimize_attunement, apply_plan, Plan, optimize_substitution, EditPlan, apply_edit_plan
 from .log import logger
 from .ansi import supports_color, colorize
-from .state import load_state, save_state, list_symbols, set_symbol
+from .state import load_state, save_state, list_symbols, set_symbol, merge_state, set_rule
 from .imply import make_fusion, make_split, apply_rule, Rule
 from . import __version__
 from .plugins.loader import (
@@ -311,6 +311,7 @@ def build_parser() -> argparse.ArgumentParser:
         gdk9 sym add NAME 12.5 -S ./state.json  # manage symbols
         gdk9 im ds SPL X1 X2 0.5                # define split rule
         gdk9 im ap SPL X --commit               # apply rule and persist
+        gdk9 state merge -i peer.json           # CRDT-merge a peer state
       """
     ),
   )
@@ -483,6 +484,12 @@ def build_parser() -> argparse.ArgumentParser:
   rst.add_argument("--symbols-only", action="store_true", help="Only clear symbols in state (keep rules)")
   rst.add_argument("--yes", "-y", action="store_true", help="Do not prompt for confirmation")
 
+  st = sub.add_parser("state", help="CRDT-aware state management")
+  st_sub = st.add_subparsers(dest="state_cmd", required=True)
+  st_merge = st_sub.add_parser("merge", help="Merge another state file into the current one using LWW CRDTs")
+  st_merge.add_argument("--incoming", "-i", required=True, help="Path to incoming state file")
+  st_merge.add_argument("--dry-run", action="store_true", help="Show merge result without writing")
+
   # crypto (experimental)
   cr = sub.add_parser("crypto", aliases=["crypt"], help="Experimental ciphers: edpc (playful) or secure (requires 'cryptography')")
   cr_sub = cr.add_subparsers(dest="crypto_cmd", required=True)
@@ -569,6 +576,24 @@ def main(argv: list[str] | None = None) -> int:
         from pathlib import Path
         plugins_reset_config()
       print(json.dumps({"ok": True, "reset": {"state": True, "plugins": do_plugins, "scope": ("rules-only" if only_rules else ("symbols-only" if only_symbols else "full")) }}, indent=2))
+      return 0
+    if args.cmd == "state":
+      base = load_state(state_path)
+      incoming = load_state(args.incoming)
+      merged, stats = merge_state(base, incoming)
+      if not args.dry_run:
+        save_state(merged, state_path)
+      print(
+        json.dumps(
+          {
+            "ok": True,
+            "state": state_path or "~/.gdk9/state.json",
+            "dry_run": bool(args.dry_run),
+            "stats": stats,
+          },
+          indent=2,
+        )
+      )
       return 0
     if args.cmd == "tokenize":
       text = read_input(args.text, args.file)
@@ -691,13 +716,13 @@ def main(argv: list[str] | None = None) -> int:
       rules = state.setdefault("rules", {})
       if args.imply_cmd == "define-fusion":
         r = make_fusion(args.rule, args.out_name, args.arity)
-        rules[r.name] = r.to_json()
+        set_rule(state, r.name, r.to_json())
         save_state(state, state_path)
         print(json.dumps({"ok": True, "rule": r.to_json()}, indent=2))
         return 0
       if args.imply_cmd == "define-split":
         r = make_split(args.rule, args.out_a, args.out_b, args.ratio)
-        rules[r.name] = r.to_json()
+        set_rule(state, r.name, r.to_json())
         save_state(state, state_path)
         print(json.dumps({"ok": True, "rule": r.to_json()}, indent=2))
         return 0
@@ -796,7 +821,7 @@ def main(argv: list[str] | None = None) -> int:
             _, _, rn, out, ar = parts
             st = load_state(spath)
             r = make_fusion(rn, out, int(ar))
-            st.setdefault("rules", {})[rn] = r.to_json()
+            set_rule(st, rn, r.to_json())
             save_state(st, spath)
             print("ok")
             continue
@@ -804,7 +829,7 @@ def main(argv: list[str] | None = None) -> int:
             _, _, rn, a, b, ratio = parts
             st = load_state(spath)
             r = make_split(rn, a, b, float(ratio))
-            st.setdefault("rules", {})[rn] = r.to_json()
+            set_rule(st, rn, r.to_json())
             save_state(st, spath)
             print("ok")
             continue

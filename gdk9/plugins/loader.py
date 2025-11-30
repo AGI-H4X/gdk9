@@ -9,6 +9,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 from ..errors import ConfigError, InputError
 from ..imply import make_fusion, make_split, Rule, apply_rule
+from ..state import set_rule, set_symbol
 from ..principles import Principle
 
 
@@ -279,14 +280,16 @@ def apply_plugin(plugin: LoadedPlugin, principle: Principle, state: Dict[str, An
     merged.update(plugin.symbol_energy)
     principle.symbol_energy = merged
   # Seed symbols into state
+  actor = f"plugin:{plugin.name}"
   if plugin.symbols:
-    state.setdefault('symbols', {}).update({k: float(v) for k, v in plugin.symbols.items()})
+    for k, v in plugin.symbols.items():
+      set_symbol(state, k, float(v), actor=actor)
   # Add rules (avoid overwriting existing rules with same name)
   rules = state.setdefault('rules', {})
   added = 0
   for r in plugin.rules:
     if r.name not in rules:
-      rules[r.name] = r.to_json()
+      set_rule(state, r.name, r.to_json(), actor=actor)
       added += 1
   return principle, state, {"rules_added": added, "symbols_added": len(plugin.symbols), "symbol_energy_updates": len(plugin.symbol_energy)}
 
