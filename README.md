@@ -21,6 +21,25 @@ Every GDk9 word is a conserved transformation—a symbolic circuit that remains 
 
 ---
 
+## CLI — output examples
+
+**`gdk9 --color dcg classify FWEM`** — symmetry class, SymPhi energy, and 4D vector for each letter:
+
+![DCG classify FWEM](docs/img/dcg_classify.png)
+
+**`gdk9 --color profile "The quick brown fox jumps over the lazy dog"`** — digital-root energy histogram with coloured block bars:
+
+![Energy profile histogram](docs/img/profile_histogram.png)
+
+Install and try it:
+```bash
+pip install -e .
+gdk9 --color dcg classify FWEM
+gdk9 --color profile "your text here"
+```
+
+---
+
 ## Table of Contents
 
 1. [Foundations: Alphabet & Symmetry Types](#foundations)
