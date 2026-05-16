@@ -390,7 +390,7 @@ def build_parser() -> argparse.ArgumentParser:
     "--version",
     action="version",
     version=(
-      f"gdk9 {__version__} — Open project; License: Proprietary (see pyproject.toml).\n"
+      f"gdk9 {__version__} — License: AGPL-3.0-or-later\n"
       f"Copyright Adam Grange | adamgrange@proton.me"
     ),
   )

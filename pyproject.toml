@@ -4,25 +4,40 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gdk9-cli"
-version = "0.2.0"
-description = "Gdk9 CLI for symbolic energy analysis and utilization"
+version = "0.3.0"
+description = "GDk9 CLI — symbolic energy analysis, implication engine, and DCG tools"
 readme = "README.md"
 requires-python = ">=3.9"
-keywords = ["gdk9", "energy", "cli", "symbols"]
-authors = [{ name = "Gdk9 Contributors" }]
-license = { text = "Proprietary" }
+keywords = ["gdk9", "energy", "symbolic", "cli", "dcg", "implication", "numerology"]
+authors = [{ name = "Adam Grange", email = "adamgrange@proton.me" }]
+license = { text = "AGPL-3.0-or-later" }
 classifiers = [
   "Programming Language :: Python :: 3",
-  "License :: Other/Proprietary License",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
   "Environment :: Console",
   "Topic :: Text Processing",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Utilities",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
 ]
 
 [project.scripts]
 gdk9 = "gdk9.cli:main"
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff", "black", "pyflakes"]
 
 [tool.setuptools]
 packages = { find = { where = ["."] } }
 
 [tool.setuptools.package-data]
 gdk9 = ["data/*.json"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"

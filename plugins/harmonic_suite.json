@@ -1,0 +1,72 @@
+{
+  "name": "harmonic_suite",
+  "version": "0.2",
+  "description": "Root/Wave/Peak triad fusion rules with punctuation energy tuning for verse and note-taking workflows.",
+  "symbol_energy": {
+    "'": 1,
+    "\"": 2,
+    "`": 3,
+    "…": 9,
+    "—": 7,
+    "–": 5,
+    "•": 4,
+    "·": 1,
+    "†": 6,
+    "‡": 8
+  },
+  "symbols": {
+    "ROOT": 1.0,
+    "WAVE": 5.0,
+    "PEAK": 9.0
+  },
+  "rules": [
+    {
+      "type": "fusion",
+      "name": "TRIAD_FUSE",
+      "out": "AUTO",
+      "arity": 3
+    },
+    {
+      "type": "fusion",
+      "name": "ROOT_WAVE",
+      "out": "AUTO",
+      "arity": 2
+    },
+    {
+      "type": "fusion",
+      "name": "WAVE_PEAK",
+      "out": "AUTO",
+      "arity": 2
+    },
+    {
+      "type": "split",
+      "name": "TRIAD_SPLIT",
+      "out_a": "LOW",
+      "out_b": "HIGH",
+      "ratio": 0.3333333333333333
+    },
+    {
+      "type": "split",
+      "name": "ROOT_HALVE",
+      "out_a": "ROOT_A",
+      "out_b": "ROOT_B",
+      "ratio": 0.5
+    }
+  ],
+  "checks": [
+    {
+      "rule": "TRIAD_FUSE",
+      "inputs": [
+        {"name": "ROOT", "energy": 1.0},
+        {"name": "WAVE", "energy": 5.0},
+        {"name": "PEAK", "energy": 9.0}
+      ]
+    },
+    {
+      "rule": "TRIAD_SPLIT",
+      "inputs": [
+        {"name": "PEAK", "energy": 9.0}
+      ]
+    }
+  ]
+}

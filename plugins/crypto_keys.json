@@ -1,0 +1,67 @@
+{
+  "name": "crypto_keys",
+  "version": "0.2",
+  "description": "Asymmetric-class split and Z-flip fusion rules for GDk9 key-derivation workflows. Uses involutive Z as the flip operator and asymmetric F/R as directional drivers.",
+  "symbol_energy": {
+    "^": 8,
+    "~": 9,
+    "|": 1,
+    "#": 5
+  },
+  "symbols": {
+    "KEY_SEED": 7.0,
+    "KEY_A": 3.0,
+    "KEY_B": 4.0,
+    "FLIP": 9.0
+  },
+  "rules": [
+    {
+      "type": "split",
+      "name": "KEY_SPLIT",
+      "out_a": "PRIV",
+      "out_b": "PUB",
+      "ratio": 0.4444444444444444
+    },
+    {
+      "type": "split",
+      "name": "ASYM_SPLIT",
+      "out_a": "DRIVER",
+      "out_b": "CARRIER",
+      "ratio": 0.3333333333333333
+    },
+    {
+      "type": "fusion",
+      "name": "Z_FLIP",
+      "out": "AUTO",
+      "arity": 2
+    },
+    {
+      "type": "fusion",
+      "name": "KEY_JOIN",
+      "out": "MASTER",
+      "arity": 3
+    },
+    {
+      "type": "split",
+      "name": "ROUND_SPLIT",
+      "out_a": "ROUND_L",
+      "out_b": "ROUND_R",
+      "ratio": 0.5
+    }
+  ],
+  "checks": [
+    {
+      "rule": "KEY_SPLIT",
+      "inputs": [
+        {"name": "KEY_SEED", "energy": 7.0}
+      ]
+    },
+    {
+      "rule": "Z_FLIP",
+      "inputs": [
+        {"name": "KEY_A", "energy": 3.0},
+        {"name": "KEY_B", "energy": 4.0}
+      ]
+    }
+  ]
+}

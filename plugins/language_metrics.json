@@ -1,0 +1,74 @@
+{
+  "name": "language_metrics",
+  "version": "0.2",
+  "description": "Fusion rules for sentence-level energy aggregation and NLP-style symbol energy overrides for common linguistic punctuation.",
+  "symbol_energy": {
+    ".": 1,
+    "?": 4,
+    "!": 3,
+    ",": 2,
+    ";": 6,
+    ":": 5,
+    "(": 2,
+    ")": 2,
+    "\"": 2,
+    "'": 1,
+    "-": 7,
+    "—": 7,
+    "…": 9
+  },
+  "symbols": {
+    "SENT_A": 5.0,
+    "SENT_B": 4.0,
+    "PARA": 9.0
+  },
+  "rules": [
+    {
+      "type": "fusion",
+      "name": "SENTENCE_MERGE",
+      "out": "PARAGRAPH",
+      "arity": 2
+    },
+    {
+      "type": "fusion",
+      "name": "PARA_MERGE",
+      "out": "DOCUMENT",
+      "arity": 3
+    },
+    {
+      "type": "split",
+      "name": "SENTENCE_SPLIT",
+      "out_a": "CLAUSE_A",
+      "out_b": "CLAUSE_B",
+      "ratio": 0.5
+    },
+    {
+      "type": "split",
+      "name": "WORD_SPLIT",
+      "out_a": "PREFIX",
+      "out_b": "SUFFIX",
+      "ratio": 0.3333333333333333
+    },
+    {
+      "type": "fusion",
+      "name": "BIGRAM_FUSE",
+      "out": "AUTO",
+      "arity": 2
+    }
+  ],
+  "checks": [
+    {
+      "rule": "SENTENCE_MERGE",
+      "inputs": [
+        {"name": "SENT_A", "energy": 5.0},
+        {"name": "SENT_B", "energy": 4.0}
+      ]
+    },
+    {
+      "rule": "SENTENCE_SPLIT",
+      "inputs": [
+        {"name": "PARA", "energy": 9.0}
+      ]
+    }
+  ]
+}

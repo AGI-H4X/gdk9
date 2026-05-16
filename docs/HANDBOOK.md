@@ -4,7 +4,7 @@ Gdk9 is a symbolic energy platform. It measures, transforms, and composes energy
 operations over characters, numbers, and symbols. This handbook covers CLI usage, plugins,
 rules, and best practices.
 
-- Project: open, evolving. License: Proprietary (see `pyproject.toml`).
+- Project: open, evolving. License: AGPL-3.0-or-later.
 - Copyright: Adam Grange | adamgrange@proton.me
 
 ## 1. Concepts

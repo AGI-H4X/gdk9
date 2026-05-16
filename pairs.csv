@@ -1,5 +1,94 @@
-b,d
-p,q
-n,u
-O,0
-I,1
+char_a,char_b,category,notes
+b,d,visual,mirror pair (biphasic)
+p,q,visual,mirror pair (asymmetric)
+n,u,visual,flip pair (involutive/idempotent)
+O,0,visual,letter-digit lookalike
+I,1,visual,letter-digit lookalike
+l,1,visual,lowercase L / digit one
+l,I,visual,lowercase L / uppercase I
+S,5,visual,letter-digit lookalike
+G,6,visual,letter-digit lookalike
+B,8,visual,letter-digit lookalike
+Z,2,visual,letter-digit lookalike
+E,3,visual,letter-digit lookalike
+A,4,visual,letter-digit lookalike
+m,w,visual,vertical flip (idempotent pair)
+M,W,visual,vertical flip (DC idempotent pair)
+h,n,visual,visual confusion
+r,n,visual,visual confusion
+c,e,visual,visual confusion
+v,u,visual,visual confusion
+A,a,dc_ac,DC form ↔ AC form (idempotent)
+B,b,dc_ac,DC form ↔ AC form (biphasic)
+C,c,dc_ac,DC form ↔ AC form (biphasic)
+D,d,dc_ac,DC form ↔ AC form (biphasic)
+E,e,dc_ac,DC form ↔ AC form (biphasic)
+F,f,dc_ac,DC form ↔ AC form (asymmetric)
+G,g,dc_ac,DC form ↔ AC form (asymmetric)
+H,h,dc_ac,DC form ↔ AC form (idempotent)
+I,i,dc_ac,DC form ↔ AC form (idempotent)
+J,j,dc_ac,DC form ↔ AC form (asymmetric)
+K,k,dc_ac,DC form ↔ AC form (biphasic)
+L,l,dc_ac,DC form ↔ AC form (asymmetric)
+M,m,dc_ac,DC form ↔ AC form (idempotent)
+N,n,dc_ac,DC form ↔ AC form (involutive)
+O,o,dc_ac,DC form ↔ AC form (idempotent)
+P,p,dc_ac,DC form ↔ AC form (asymmetric)
+Q,q,dc_ac,DC form ↔ AC form (asymmetric)
+R,r,dc_ac,DC form ↔ AC form (asymmetric)
+S,s,dc_ac,DC form ↔ AC form (involutive)
+T,t,dc_ac,DC form ↔ AC form (idempotent)
+U,u,dc_ac,DC form ↔ AC form (idempotent)
+V,v,dc_ac,DC form ↔ AC form (idempotent)
+W,w,dc_ac,DC form ↔ AC form (idempotent)
+X,x,dc_ac,DC form ↔ AC form (idempotent)
+Y,y,dc_ac,DC form ↔ AC form (idempotent)
+Z,z,dc_ac,DC form ↔ AC form (involutive)
+A,J,energy_1,A1Z26 DR=1 (A=1 J=10)
+A,S,energy_1,A1Z26 DR=1 (A=1 S=19)
+J,S,energy_1,A1Z26 DR=1 (J=10 S=19)
+B,K,energy_2,A1Z26 DR=2 (B=2 K=11)
+B,T,energy_2,A1Z26 DR=2 (B=2 T=20)
+K,T,energy_2,A1Z26 DR=2 (K=11 T=20)
+C,L,energy_3,A1Z26 DR=3 (C=3 L=12)
+C,U,energy_3,A1Z26 DR=3 (C=3 U=21)
+L,U,energy_3,A1Z26 DR=3 (L=12 U=21)
+D,M,energy_4,A1Z26 DR=4 (D=4 M=13)
+D,V,energy_4,A1Z26 DR=4 (D=4 V=22)
+M,V,energy_4,A1Z26 DR=4 (M=13 V=22)
+E,N,energy_5,A1Z26 DR=5 (E=5 N=14)
+E,W,energy_5,A1Z26 DR=5 (E=5 W=23)
+N,W,energy_5,A1Z26 DR=5 (N=14 W=23)
+F,O,energy_6,A1Z26 DR=6 (F=6 O=15)
+F,X,energy_6,A1Z26 DR=6 (F=6 X=24)
+O,X,energy_6,A1Z26 DR=6 (O=15 X=24)
+G,P,energy_7,A1Z26 DR=7 (G=7 P=16)
+G,Y,energy_7,A1Z26 DR=7 (G=7 Y=25)
+P,Y,energy_7,A1Z26 DR=7 (P=16 Y=25)
+H,Q,energy_8,A1Z26 DR=8 (H=8 Q=17)
+H,Z,energy_8,A1Z26 DR=8 (H=8 Z=26)
+Q,Z,energy_8,A1Z26 DR=8 (Q=17 Z=26)
+I,R,energy_9,A1Z26 DR=9 (I=9 R=18)
+N,S,involutive,both involutive class (DC)
+N,Z,involutive,both involutive class (DC)
+S,Z,involutive,both involutive class (DC)
+n,s,involutive,both involutive class (AC)
+n,z,involutive,both involutive class (AC)
+s,z,involutive,both involutive class (AC)
+.,<,symbol_e1,symbol energy = 1
+.,>,symbol_e1,symbol energy = 1
+<,>,symbol_e1,symbol energy = 1
+.,(,symbol_e1_e2,energy boundary pair
+(,),symbol_e2,both energy 2 (brackets)
+[,],symbol_e2,both energy 2
+{,},symbol_e2,both energy 2
+/,\,symbol_e3,both energy 3 (slashes)
++,?,symbol_e4,both energy 4
+:,%,symbol_e5,both energy 5
+#,%,symbol_e5,both energy 5
+;,=,symbol_e6,both energy 6
+-,$,symbol_e7,both energy 7
+_,^,symbol_e8,both energy 8
+@,^,symbol_e8,both energy 8
+*,~,symbol_e9,both energy 9 (full cycle)
+&,~,symbol_e9,both energy 9
