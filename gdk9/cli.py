@@ -15,6 +15,7 @@ from .tokenize import summarize_tokens_table, to_json_payload, annotate_text, de
 from .optimize import optimize_attunement, apply_plan, Plan, optimize_substitution, EditPlan, apply_edit_plan
 from .log import logger
 from .ansi import supports_color, colorize
+from .fmt import Box, section, kv, fmt_dr, fmt_float_e, fmt_class, fmt_valid, fmt_form, energy_bar, vlen
 from .state import load_state, save_state, list_symbols, set_symbol, merge_state, set_rule
 from .imply import make_fusion, make_split, apply_rule, Rule
 from . import __version__
@@ -34,13 +35,13 @@ class SmartFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescrip
 
 
 def print_table(rows: list[list[str]], use_color: bool = False) -> None:
-  widths = [max(len(row[i]) for row in rows) for i in range(len(rows[0]))]
-  header = rows[0]
-  colored_header = [colorize(h, "bold", use_color) for h in header]
-  print("  ".join(val.ljust(widths[i]) for i, val in enumerate(colored_header)))
+  """Render rows[0] as header, remaining as data, with Unicode borders."""
+  if not rows:
+    return
+  t = Box(rows[0], enabled=use_color)
   for row in rows[1:]:
-    line = "  ".join(val.ljust(widths[i]) for i, val in enumerate(row))
-    print(line)
+    t.row(row)
+  print(t.render())
 
 
 def cmd_analyze(args: argparse.Namespace, principle: Principle, use_color: bool) -> int:
@@ -55,23 +56,37 @@ def cmd_analyze(args: argparse.Namespace, principle: Principle, use_color: bool)
       out["harmonics"] = harmonic_triads(text, principle)
     print(json.dumps(out, ensure_ascii=False, indent=2))
     return 0
-  # Default: table summary
-  rows = [["unit", "value", "energy", "total"]]
+  # Table
+  _unit_color = {"document": "bold", "paragraph": "white", "sentence": "dim", "word": None}
+  t = Box(["unit", "value", "energy", "total"],
+          col_align=["l", "l", "r", "r"], enabled=use_color)
   for k in ["document", "paragraphs", "sentences", "words"]:
     for u in result.get(k, []):
-      val = (u.value[:50] + "…") if len(u.value) > 50 else u.value
-      e = str(u.energy)
-      if use_color:
-        color_map = {"1": "blue", "2": "blue", "3": "cyan", "4": "green", "5": "yellow", "6": "magenta", "7": "red", "8": "red", "9": "bold"}
-        e = colorize(e, color_map.get(e, None), True)
-      rows.append([u.unit, val, e, str(u.total)])
-  print_table(rows, use_color)
+      val = (u.value[:48] + "…") if len(u.value) > 48 else u.value
+      unit_s = colorize(u.unit, _unit_color.get(u.unit), use_color)
+      e_s = fmt_dr(u.energy, use_color)
+      t.row([unit_s, val, e_s, str(u.total)])
+  print(t.render())
   if args.mode == "extended":
-    vec = vector_energy(text, principle)
+    vec  = vector_energy(text, principle)
     harm = harmonic_triads(text, principle)
     print()
-    print_table([["vector", "letters", "digits", "symbols"], ["sum", str(vec["sum"]["letters"]), str(vec["sum"]["digits"]), str(vec["sum"]["symbols"])], ["dr", str(vec["dr"]["letters"]), str(vec["dr"]["digits"]), str(vec["dr"]["symbols"]) ]], use_color)
-    print_table([["harmonics", "root", "wave", "peak"], ["counts", str(harm["root"]), str(harm["wave"]), str(harm["peak"]) ]], use_color)
+    tv = Box(["vector", "letters", "digits", "symbols"],
+             col_align=["l", "r", "r", "r"], enabled=use_color)
+    tv.row(["sum", str(vec["sum"]["letters"]), str(vec["sum"]["digits"]), str(vec["sum"]["symbols"])])
+    tv.row(["dr",
+            fmt_dr(vec["dr"]["letters"], use_color),
+            fmt_dr(vec["dr"]["digits"],  use_color),
+            fmt_dr(vec["dr"]["symbols"], use_color)])
+    print(tv.render())
+    print()
+    th = Box(["harmonics", "root", "wave", "peak"],
+             col_align=["l", "r", "r", "r"], enabled=use_color)
+    th.row(["counts",
+            colorize(str(harm["root"]), "cyan",    use_color),
+            colorize(str(harm["wave"]), "yellow",  use_color),
+            colorize(str(harm["peak"]), "magenta", use_color)])
+    print(th.render())
   return 0
 
 
@@ -82,25 +97,29 @@ def cmd_profile(args: argparse.Namespace, principle: Principle, use_color: bool)
   if args.format == "json":
     print(json.dumps({"profile": prof, "total": total, "dr": dr}, indent=2))
     return 0
-  rows = [["energy", "count"], *([[k, str(v)] for k, v in prof.items()])]
-  print_table(rows, use_color)
-  print(f"TOTAL={total} DR={dr}")
+  max_cnt = max(int(v) for v in prof.values()) or 1
+  t = Box(["dr", "cnt", ""], col_align=["c", "r", "l"], enabled=use_color)
+  for i in range(1, 10):
+    cnt = int(prof[str(i)])
+    dr_s  = fmt_dr(i, use_color)
+    cnt_s = colorize(str(cnt), "dim" if cnt == 0 else None, use_color)
+    bar   = energy_bar(i, cnt, max_cnt, bar_width=22, enabled=use_color)
+    t.row([dr_s, cnt_s, bar])
+  print(t.render())
+  print(kv("total", str(total), use_color) + "  " + kv("dr", fmt_dr(dr, use_color), use_color))
   return 0
 
 
 def cmd_assign(args: argparse.Namespace, principle: Principle, use_color: bool) -> int:
   text = read_input(args.text, args.file)
   from .energy import char_energy
-
-  rows = [["char", "energy"]]
+  t = Box(["char", "energy"], col_align=["c", "r"], enabled=use_color)
   for ch in text:
     if ch == "\n":
       continue
-    e = str(char_energy(ch, principle))
-    if use_color:
-      e = colorize(e, "cyan", True)
-    rows.append([repr(ch)[1:-1], e])
-  print_table(rows, use_color)
+    e = char_energy(ch, principle)
+    t.row([colorize(repr(ch)[1:-1], "bold", use_color), fmt_dr(e, use_color)])
+  print(t.render())
   return 0
 
 
@@ -175,19 +194,23 @@ def cmd_attune(args: argparse.Namespace, principle: Principle, use_color: bool) 
   return 0
 
 
-def cmd_compare(args: argparse.Namespace, principle: Principle) -> int:
-  left = read_input(args.left, args.left_file)
+def cmd_compare(args: argparse.Namespace, principle: Principle, use_color: bool) -> int:
+  left  = read_input(args.left,  args.left_file)
   right = read_input(args.right, args.right_file)
-  ltot, ldr = string_energy(left, principle)
+  ltot, ldr = string_energy(left,  principle)
   rtot, rdr = string_energy(right, principle)
   delta = rtot - ltot
-  rows = [
-    ["side", "total", "dr"],
-    ["left", str(ltot), str(ldr)],
-    ["right", str(rtot), str(rdr)],
-  ]
-  print_table(rows)
-  print(f"DELTA={delta}")
+  t = Box(["side", "total", "dr"], col_align=["l", "r", "r"], enabled=use_color)
+  t.row([colorize("left",  "dim",  use_color), str(ltot), fmt_dr(ldr, use_color)])
+  t.row([colorize("right", "bold", use_color), str(rtot), fmt_dr(rdr, use_color)])
+  print(t.render())
+  if delta == 0:
+    delta_s = colorize("0", "bright_green", use_color)
+  elif delta > 0:
+    delta_s = colorize(f"+{delta}", "yellow", use_color)
+  else:
+    delta_s = colorize(str(delta), "red", use_color)
+  print(kv("delta", delta_s, use_color))
   return 0
 
 
@@ -221,10 +244,47 @@ def cmd_decode(args: argparse.Namespace, principle: Principle) -> int:  # pragma
   return 0
 
 
-def cmd_synthesize(args: argparse.Namespace, principle: Principle) -> int:
-  text = read_input(args.text, args.file)
-  out = sigil(text, principle, style=args.style)
-  print(out)
+def cmd_synthesize(args: argparse.Namespace, principle: Principle, use_color: bool) -> int:
+  text  = read_input(args.text, args.file)
+  raw   = sigil(text, principle, style=args.style)
+  total, dr = string_energy(text, principle)
+  if not use_color:
+    print(raw)
+    return 0
+  lines = raw.splitlines()
+  # Colour the header line (DR= TOTAL=) and each cell value
+  out = []
+  for line in lines:
+    if line.startswith("DR="):
+      parts = line.split()
+      header = "  ".join(
+        kv(p.split("=")[0], colorize(p.split("=")[1], "bright_white", True), True)
+        for p in parts if "=" in p
+      )
+      out.append(header)
+    else:
+      # Colour each digit in grid/bar lines by its DR value
+      coloured = ""
+      for ch in line:
+        if ch.isdigit() and ch != "0":
+          coloured += fmt_dr(int(ch), True)
+        elif ch == "0":
+          coloured += colorize("0", "dim", True)
+        elif ch == "#":
+          dr_v = int(line[0]) if line and line[0].isdigit() else 9
+          coloured += colorize(ch, "bright_white", True)
+        else:
+          coloured += colorize(ch, "dim", True) if ch in ":-" else ch
+      out.append(coloured)
+  # Frame the sigil
+  inner_w = max(vlen(l) for l in out) if out else 20
+  h_bar   = "─" * (inner_w + 4)
+  b       = lambda s: colorize(s, "dim", True)
+  print(b("┌" + h_bar + "┐"))
+  for l in out:
+    pad_r = " " * max(0, inner_w - vlen(l))
+    print(b("│") + "  " + l + pad_r + "  " + b("│"))
+  print(b("└" + h_bar + "┘"))
   return 0
 
 
@@ -490,6 +550,36 @@ def build_parser() -> argparse.ArgumentParser:
   st_merge.add_argument("--incoming", "-i", required=True, help="Path to incoming state file")
   st_merge.add_argument("--dry-run", action="store_true", help="Show merge result without writing")
 
+  # dcg — Directed Cognition Graph
+  dcg = sub.add_parser("dcg", help="Directed Cognition Graph: classify, path, vector, shortest, homotopy, info")
+  dcg_sub = dcg.add_subparsers(dest="dcg_cmd", required=True)
+
+  dcg_cls = dcg_sub.add_parser("classify", aliases=["cls"], help="Show symmetry class and SymPhi energy for each letter")
+  dcg_cls.add_argument("text", help="Text to classify (only alphabetic characters are processed)")
+  dcg_cls.add_argument("--format", "-F", choices=["table", "json"], default="table")
+
+  dcg_path = dcg_sub.add_parser("path", aliases=["p"], help="Analyse word as a DCG path and show per-step edge validity")
+  dcg_path.add_argument("word")
+  dcg_path.add_argument("--format", "-F", choices=["table", "json"], default="table")
+
+  dcg_vec = dcg_sub.add_parser("vector", aliases=["vec"], help="Show 4D vector sum for a word")
+  dcg_vec.add_argument("word")
+  dcg_vec.add_argument("--format", "-F", choices=["table", "json"], default="table")
+
+  dcg_sp = dcg_sub.add_parser("shortest", aliases=["sp"], help="Shortest DCG path between two letters (Dijkstra)")
+  dcg_sp.add_argument("src", help="Source letter")
+  dcg_sp.add_argument("dst", help="Destination letter")
+  dcg_sp.add_argument("--format", "-F", choices=["table", "json"], default="table")
+
+  dcg_hom = dcg_sub.add_parser("homotopy", aliases=["hom"], help="Check homotopy equivalence of two words")
+  dcg_hom.add_argument("word_a")
+  dcg_hom.add_argument("word_b")
+  dcg_hom.add_argument("--tol", type=float, default=1.0, help="Energy and vector-distance tolerance (default 1.0)")
+  dcg_hom.add_argument("--format", "-F", choices=["table", "json"], default="table")
+
+  dcg_info = dcg_sub.add_parser("info", help="Show DCG graph statistics")
+  dcg_info.add_argument("--format", "-F", choices=["table", "json"], default="table")
+
   # crypto (experimental)
   cr = sub.add_parser("crypto", aliases=["crypt"], help="Experimental ciphers: edpc (playful) or secure (requires 'cryptography')")
   cr_sub = cr.add_subparsers(dest="crypto_cmd", required=True)
@@ -529,13 +619,207 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "attune":
       return cmd_attune(args, principle, use_color)
     if args.cmd == "compare":
-      return cmd_compare(args, principle)
+      return cmd_compare(args, principle, use_color)
     if args.cmd == "encode":
       return cmd_encode(args, principle)
     if args.cmd == "decode":
       return cmd_decode(args, principle)
     if args.cmd == "synthesize":
-      return cmd_synthesize(args, principle)
+      return cmd_synthesize(args, principle, use_color)
+    if args.cmd == "dcg":
+      from .dcg import (
+        get_dcg, symmetry_class, sym_energy, vectorize,
+        word_sym_energy, word_vector, homotopy_equivalent,
+      )
+      g   = get_dcg()
+      fmt = getattr(args, "format", "table")
+
+      # ── classify ──────────────────────────────────────────────────────────
+      if args.dcg_cmd in ("classify", "cls"):
+        letters = [c for c in args.text if c.isalpha()]
+        if not letters:
+          raise InputError("No alphabetic characters in input")
+        records = []
+        for ch in letters:
+          sc  = symmetry_class(ch)
+          e   = sym_energy(ch)
+          vec = vectorize(ch)
+          records.append({"char": ch, "class": sc, "energy": round(e, 6),
+                          "vector": [round(x, 6) for x in vec]})
+        if fmt == "json":
+          print(json.dumps(records, ensure_ascii=False, indent=2))
+          return 0
+        print(section("dcg · classify", enabled=use_color))
+        t = Box(["char", "form", "class", "energy",
+                 "v₀ pos", "v₁ tid", "v₂ √E", "v₃ sinθ"],
+                col_align=["c", "c", "l", "r", "r", "r", "r", "r"],
+                enabled=use_color)
+        for r in records:
+          ch  = r["char"]
+          sc  = r["class"]
+          e   = r["energy"]
+          vec = r["vector"]
+          form = "DC" if ch.isupper() else "ac"
+          form_s = colorize("DC", "bold", use_color) if ch.isupper() \
+                   else colorize("ac", "dim", use_color)
+          t.row([colorize(ch, "bold", use_color),
+                 form_s,
+                 fmt_class(sc, use_color),
+                 fmt_float_e(e, use_color),
+                 colorize(f"{vec[0]:.1f}", "dim",   use_color),
+                 colorize(f"{vec[1]:.0f}", "dim",   use_color),
+                 colorize(f"{vec[2]:.4f}", "cyan",  use_color),
+                 colorize(f"{vec[3]:.4f}", "yellow",use_color)])
+        print(t.render())
+        return 0
+
+      # ── path ──────────────────────────────────────────────────────────────
+      if args.dcg_cmd in ("path", "p"):
+        info = g.word_path_info(args.word)
+        if fmt == "json":
+          print(json.dumps(info, ensure_ascii=False, indent=2))
+          return 0
+        print(section("dcg · path", enabled=use_color))
+        steps = info["steps"]
+        t = Box(["#", "char", "class", "energy", "from", "✓"],
+                col_align=["r", "c", "l", "r", "c", "c"], enabled=use_color)
+        invalid_count = 0
+        for i, s in enumerate(steps):
+          ef = colorize(s.get("edge_from", "—"), "dim", use_color)
+          if "valid_step" not in s:
+            val_s = colorize("—", "dim", use_color)
+          else:
+            v = s["valid_step"]
+            val_s = fmt_valid(v, use_color)
+            if not v:
+              invalid_count += 1
+          t.row([colorize(str(i), "dim", use_color),
+                 colorize(s["char"], "bold", use_color),
+                 fmt_class(s["class"], use_color),
+                 fmt_float_e(s["energy"], use_color),
+                 ef, val_s])
+        print(t.render())
+        if info["is_valid_path"]:
+          path_s = fmt_valid(True, use_color) + colorize(" valid path", "bright_green", use_color)
+        else:
+          path_s = fmt_valid(False, use_color) + colorize(f" {invalid_count} invalid step(s)", "bright_red", use_color)
+        e_s = colorize(f"{info['total_energy']:.4f}", "bright_white", use_color)
+        print(kv("energy", e_s, use_color) + "   " + path_s)
+        print(kv("vector", colorize(str([round(x,3) for x in info["vector_sum"]]), "dim", use_color), use_color))
+        return 0
+
+      # ── vector ────────────────────────────────────────────────────────────
+      if args.dcg_cmd in ("vector", "vec"):
+        vec = word_vector(args.word)
+        e   = word_sym_energy(args.word)
+        if fmt == "json":
+          print(json.dumps({"word": args.word, "total_energy": round(e, 6),
+                            "vector": [round(x, 6) for x in vec]}, indent=2))
+          return 0
+        print(section("dcg · vector", enabled=use_color))
+        labels = ["pos_sum", "type_id_sum", "√E_sum", "sinθ_sum"]
+        colors = ["white", "dim", "cyan", "yellow"]
+        t = Box(["dim", "label", "value"], col_align=["c", "l", "r"], enabled=use_color)
+        for i, (lbl, col, val) in enumerate(zip(labels, colors, vec)):
+          t.row([colorize(str(i), "dim", use_color),
+                 colorize(lbl, col, use_color),
+                 colorize(f"{val:.4f}", "bright_white", use_color)])
+        print(t.render())
+        print(kv("total_energy", fmt_float_e(e, use_color), use_color))
+        return 0
+
+      # ── shortest ──────────────────────────────────────────────────────────
+      if args.dcg_cmd in ("shortest", "sp"):
+        if len(args.src) != 1 or not args.src.isalpha():
+          raise InputError("src must be a single alphabetic character")
+        if len(args.dst) != 1 or not args.dst.isalpha():
+          raise InputError("dst must be a single alphabetic character")
+        path = g.shortest_path(args.src, args.dst)
+        if path is None:
+          raise InputError(f"No path from {args.src!r} to {args.dst!r}")
+        cost = g.shortest_path_cost(args.src, args.dst)
+        if fmt == "json":
+          detail = [{"char": c, "class": symmetry_class(c), "energy": round(sym_energy(c), 6)}
+                    for c in path]
+          print(json.dumps({"src": args.src, "dst": args.dst, "path": detail,
+                            "length": len(path), "cost": cost}, indent=2))
+          return 0
+        print(section("dcg · shortest path", enabled=use_color))
+        t = Box(["#", "char", "class", "energy", "cost"],
+                col_align=["r", "c", "l", "r", "r"], enabled=use_color)
+        for i, ch in enumerate(path):
+          w = g.edge_weight(path[i-1], ch) if i > 0 else None
+          w_s = colorize(f"{w:.1f}", "dim", use_color) if w else colorize("—", "dim", use_color)
+          t.row([colorize(str(i), "dim", use_color),
+                 colorize(ch, "bold", use_color),
+                 fmt_class(symmetry_class(ch), use_color),
+                 fmt_float_e(sym_energy(ch), use_color),
+                 w_s])
+        print(t.render())
+        # Arrow chain
+        arrow = colorize(" → ", "dim", use_color)
+        chain = arrow.join(colorize(c, "bold", use_color) for c in path)
+        print(chain)
+        print(kv("length", colorize(str(len(path)), "bright_white", use_color), use_color)
+              + "   " + kv("cost", colorize(f"{cost:.1f}", "yellow", use_color), use_color))
+        return 0
+
+      # ── homotopy ──────────────────────────────────────────────────────────
+      if args.dcg_cmd in ("homotopy", "hom"):
+        equiv, detail = homotopy_equivalent(args.word_a, args.word_b, tol=args.tol)
+        if fmt == "json":
+          print(json.dumps(detail, indent=2))
+          return 0
+        print(section("dcg · homotopy", enabled=use_color))
+        wa_s = colorize(args.word_a, "bold",    use_color)
+        wb_s = colorize(args.word_b, "cyan",    use_color)
+        t = Box(["metric", wa_s, wb_s, ""],
+                col_align=["l", "r", "r", "l"], enabled=use_color)
+        t.row([colorize("energy",          "dim", use_color),
+               colorize(str(detail["word_a"]["energy"]), "cyan",   use_color),
+               colorize(str(detail["word_b"]["energy"]), "cyan",   use_color), ""])
+        t.divider()
+        t.row([colorize("energy_diff",     "dim", use_color),
+               colorize(str(detail["energy_diff"]),     "yellow",  use_color), "", ""])
+        t.row([colorize("vector_distance", "dim", use_color),
+               colorize(str(detail["vector_distance"]), "yellow",  use_color), "", ""])
+        print(t.render())
+        if equiv:
+          verdict = (fmt_valid(True,  use_color) + "  "
+                     + colorize("EQUIVALENT", "bright_green", use_color)
+                     + colorize(f"  (tol={args.tol})", "dim", use_color))
+        else:
+          verdict = (fmt_valid(False, use_color) + "  "
+                     + colorize("NOT equivalent", "bright_red",   use_color)
+                     + colorize(f"  (tol={args.tol})", "dim",     use_color))
+        print("  " + verdict)
+        return 0
+
+      # ── info ──────────────────────────────────────────────────────────────
+      if args.dcg_cmd == "info":
+        nc      = g.node_count()
+        ec      = g.edge_count()
+        by_type = g.edge_count_by_type()
+        if fmt == "json":
+          print(json.dumps({"nodes": nc, "edges": ec, "edges_by_type": by_type}, indent=2))
+          return 0
+        print(section("dcg · info", enabled=use_color))
+        _type_color = {
+          "dc_ac": "bright_cyan",
+          "within_idempotent": "cyan", "within_biphasic": "yellow",
+          "within_involutive": "magenta", "within_asymmetric": "red",
+          "asymmetric_to_biphasic": "bright_red", "biphasic_to_idempotent": "bright_yellow",
+          "idempotent_to_involutive": "bright_cyan", "involutive_to_asymmetric": "bright_magenta",
+        }
+        t = Box(["edge type", "count"], col_align=["l", "r"], enabled=use_color)
+        for k, v in sorted(by_type.items()):
+          col = _type_color.get(k)
+          t.row([colorize(k, col, use_color), colorize(str(v), "bright_white", use_color)])
+        print(t.render())
+        print(kv("nodes", colorize(str(nc), "bright_white", use_color), use_color)
+              + "   " + kv("edges", colorize(str(ec), "bright_white", use_color), use_color))
+        return 0
+
     if args.cmd == "crypto":
       from .crypto import encrypt as c_encrypt, decrypt as c_decrypt, encrypt_secure, decrypt_secure
       text = read_input(getattr(args, 'text', None), getattr(args, 'file', None))

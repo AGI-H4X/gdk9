@@ -18,7 +18,7 @@ run:
 	$(PY) -m gdk9.cli --help
 
 test:
-	$(PY) -m unittest discover -s tests -p 'test_*.py'
+	$(PY) -m pytest -q
 
 lint:
 	ruff check . || echo "Install ruff for linting (pip install ruff)"

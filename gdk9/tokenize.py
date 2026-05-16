@@ -345,33 +345,42 @@ def compute_metrics(text: str, toks: List[Token], principle: Principle, dset: st
 
 def summarize_metrics_lines(text: str, toks: List[Token], principle: Principle, dset: str, use_color: bool = False) -> List[str]:
   """Return human-readable summary lines for CLI footer."""
+  from .ansi import colorize as _c
+  def _kv(k: str, v: str) -> str:
+    return _c(k, "dim", use_color) + "=" + _c(v, "bright_white", use_color)
+  def _dr(n: int) -> str:
+    _dr_col = {1:"blue",2:"blue",3:"cyan",4:"green",5:"yellow",6:"magenta",7:"red",8:"bright_red",9:"bright_white"}
+    return _c(str(n), _dr_col.get(n), use_color)
+
   metrics = compute_metrics(text, toks, principle, dset)
   out: List[str] = []
-  # Counts
   c = metrics["counts"]  # type: ignore[index]
-  out.append(f"tokens={c['total_tokens']} content={c['content_tokens']} delims={c['delimiter_tokens']}")
-  # Sums
+  out.append("  " + "  ".join([
+    _kv("tokens",  str(c["total_tokens"])),
+    _kv("content", str(c["content_tokens"])),
+    _kv("delims",  str(c["delimiter_tokens"])),
+  ]))
   s = metrics["sums"]  # type: ignore[index]
-  out.append(f"content_total={s['content_total']} delim_total={s['delimiter_total']} doc_total={s['document_total']} doc_dr={s['document_dr']}")
-  # DR histogram (content)
+  out.append("  " + "  ".join([
+    _kv("doc_total", str(s["document_total"])),
+    _kv("doc_dr",    _dr(s["document_dr"])),
+    _kv("content∑",  str(s["content_total"])),
+    _kv("delim∑",    str(s["delimiter_total"])),
+  ]))
   h = metrics["histograms"]["content_dr"]  # type: ignore[index]
-  hist_line = "dr_hist=" + ", ".join(f"{k}:{h[str(k)]}" for k in range(1, 10))
-  out.append(hist_line)
-  # Top tokens (content)
+  parts = [_dr(k) + _c(":", "dim", use_color) + _c(str(h[str(k)]), "white", use_color)
+           for k in range(1, 10)]
+  out.append("  " + _c("dr ", "dim", use_color) + " ".join(parts))
   tops = metrics["top_tokens"]  # type: ignore[index]
   if tops:
-    parts = [f"{t['text']}[{t['total']}/{t['dr']}]" for t in tops]
-    out.append("top_tokens=" + "; ".join(parts))
-  # Class energy breakdown (content)
+    top_parts = [_c(t["text"], "bold", use_color) + _c(f"[{t['total']}/{t['dr']}]", "dim", use_color)
+                 for t in tops]
+    out.append("  " + _c("top ", "dim", use_color) + _c("  ", "dim", use_color).join(top_parts))
   cl = metrics["classes"]["content"]["energy"]  # type: ignore[index]
-  out.append(f"class_energy letters={cl['letters']} digits={cl['digits']} symbols={cl['symbols']}")
-  # Class ratio (content by counts)
-  cc = metrics["classes"]["content"]["counts"]  # type: ignore[index]
-  denom = max(1, cc['letters'] + cc['digits'] + cc['symbols'])
-  out.append(
-    "class_ratio "
-    f"letters={cc['letters']/denom:.2f} digits={cc['digits']/denom:.2f} symbols={cc['symbols']/denom:.2f}"
-  )
-  # Delimiter set
-  out.append(f"delims={repr(dset)}")
+  out.append("  " + "  ".join([
+    _kv("letters", _c(str(cl["letters"]), "cyan",    use_color)),
+    _kv("digits",  _c(str(cl["digits"]),  "yellow",  use_color)),
+    _kv("symbols", _c(str(cl["symbols"]), "magenta", use_color)),
+  ]))
+  out.append("  " + _kv("delims", _c(repr(dset), "dim", use_color)))
   return out
